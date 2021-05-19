@@ -15,11 +15,20 @@ object ContextFunctions:
     // sum is expanded to sum(x, y)(ctx)
     def asyncSum(x: Int, y: Int): Contextual[Future[Int]] = Future(x + y)
 
-    def asyncMult(x: Int, y: Int)(using ctx: ExecutionContext) = Future(x * y)
+    def asyncMult(x: Int, y: Int)(using ctx: ExecutionContext): Future[Int] = Future(x * y)
 
   object parse:
 
     type Parseable[T] = GivenInstances.StringParser[T] ?=> Try[T]
+
+    def sumStrings1(x: String, y: String)(using parser : GivenInstances.StringParser[Int]): Try[Int] =
+      val tryA = parser.parse(x)
+      val tryB = parser.parse(y)
+
+      for
+        a <- tryA
+        b <- tryB
+      yield a + b
 
     def sumStrings(x: String, y: String): Parseable[Int] =
       val parser = summon[GivenInstances.StringParser[Int]]
@@ -31,11 +40,12 @@ object ContextFunctions:
         b <- tryB
       yield a + b
 
-  def test(): Unit =
+  @main
+  def test1(): Unit =
     import ExecutionContext.Implicits.global
     context.asyncSum(3, 4).foreach(println)
     context.asyncMult(3, 4).foreach(println)
 
-    println(parse.sumStrings("3", "4"))
-    println(parse.sumStrings("3", "a"))
+    println(parse.sumStrings1("3", "4"))
+    println(parse.sumStrings1("3", "a"))
 
